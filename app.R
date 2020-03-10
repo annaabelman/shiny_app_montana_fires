@@ -43,6 +43,7 @@ mt_date_combined <- mt_date %>%
   mutate(interval = difftime(final_cont_date,final_dis_date,units = "min")) %>% 
   mutate(interval = round(interval/60, 2)) %>% 
   drop_na(final_cont_date, final_dis_date)
+
 pal <- colorFactor(palette = c("red", "blue","red", "blue","red", "blue","red", "blue","red", "blue","red", "blue","red"), 
                    levels = c(unique(mt_sf$stat_cause_descr)))
 
@@ -52,6 +53,7 @@ pal <- colorFactor(palette = c("red", "blue","red", "blue","red", "blue","red", 
 # ---------------------------
 
 ui <- dashboardPage(
+  skin = "yellow",
   dashboardHeader(title = "Montana Wildfires"),
   dashboardSidebar(
     sidebarMenu(
@@ -66,29 +68,40 @@ ui <- dashboardPage(
         tabName = "causes",
         fluidRow(
           box(title = "Causes Map",
+              background = "black",
               checkboxGroupInput("mt_cause",
                                  "Choose a fire cause:",
                                  choices = c(unique(mt_sf$stat_cause_descr)))),
-          box(leafletOutput(outputId = "mymap", width = 1150, height = 750)))
+          box(background = "black",
+              leafletOutput(outputId = "mymap", width = 1150, height = 750)))
       ),
       tabItem(
         tabName = "search",
         fluidRow(
           box(title = "Montana Wildfires by Name",
-              selectInput("mt_fire_name",
-                          "Search a specific wildfire by name:", choices = c(unique(mt$fire_name)))),
-          box(gt_output(outputId = "mt_fire_summary")),
-          box(plotOutput(outputId = "name_plot"))
+              width = 4,
+              solidHeader = TRUE,
+              background = "black",
+              textInput("mt_fire_name",
+                          "Search a specific wildfire by name:")),
+          box(width = 7,
+              background = "black",
+              plotOutput(outputId = "name_plot", width = 400, height = 250)),
+          box(width = 10,
+              background = "black",
+              gt_output(outputId = "mt_fire_summary"))
         )
       ),
       tabItem(
         tabName = "time", 
         fluidRow(
-          box(title = "Containment Time by Reporting Source Over the Years",
+          box(background = "black",
+              title = "Containment Time by Reporting Source Over the Years",
               selectInput("source_time", 
                           "Choose a reporting source:",
                           choices = c(unique(mt$source_reporting_unit_name)))),
-          box(plotOutput(outputId = "time_plot"))
+          box(background = "black",
+              plotOutput(outputId = "time_plot"))
         )
       )
     )
@@ -115,10 +128,22 @@ server <- function(input, output){
     
   })
   
+  mt_df3 <- reactive({
+    mt %>% 
+      filter(fire_name == input$mt_fire_name)
+  }) 
+  output$name_plot <- renderPlot({
+    ggplot()+
+      geom_sf(data = counties_mt)+
+      geom_point(data = mt_df3(), aes (x = longitude, y = latitude),
+                 color = "red",
+                 size = 5)+
+      theme_minimal()
+  })
   
   mt_gt <- reactive({
-    mt %>%  
-      select(fire_name, fire_year, stat_cause_descr, fire_size, latitude, longitude, source_reporting_unit_name) %>% 
+    mt_date_combined %>%  
+      select(fire_name, fire_year, stat_cause_descr, fire_size, source_reporting_unit_name, final_dis_date, final_cont_date) %>% 
       filter(fire_name == input$mt_fire_name) %>% 
       gt() %>% 
       tab_header(
@@ -129,24 +154,17 @@ server <- function(input, output){
         fire_year = "Year",
         stat_cause_descr = "Cause of Fire",
         fire_size = "Fire Area",
-        latitude = "Latitude",
-        longitude = "Longitude",
-        source_reporting_unit_name = "Name of Reporting Source")
+        source_reporting_unit_name = "Name of Reporting Source",
+        final_dis_date = "Discovery Time",
+        final_cont_date = "Contained Time") %>% 
+      tab_options(
+        table.width = pct(100))
   })
   
   output$mt_fire_summary <- render_gt({
     expr = mt_gt()
   })
   
-  mt_df3 <- reactive({
-    mt %>% 
-      filter(fire_name == input$mt_fire_name)
-  }) 
-  output$name_plot <- renderPlot({
-    ggplot()+
-      geom_sf(data = counties_mt)+
-      geom_point(data = mt_df3(), aes (x = longitude, y = latitude))
-  })
   
   mt_df4 <- reactive({
     mt_date_combined %>% 
