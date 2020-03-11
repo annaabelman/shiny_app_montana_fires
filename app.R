@@ -15,6 +15,7 @@ library(devtools)
 library(leaflet)
 library(kableExtra)
 library(lubridate)
+library(gt)
 
 # ----------------------------
 # read in data
