@@ -2,7 +2,7 @@
 # start of shiny app -Anna
 # ----------------------------
 
-#Attach packages
+# Attach packages
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
@@ -15,15 +15,15 @@ library(devtools)
 library(leaflet)
 library(kableExtra)
 library(lubridate)
-library(gt)
+library(ggthemes)
 
 # ----------------------------
-#read in data
+# read in data
 # ----------------------------
 counties_mt <- us_counties(states = "Montana")
 plot(st_geometry(counties_mt))
 
-#adding data set
+# adding data set
 mt <- read_csv("montana_fire.csv") %>% 
   clean_names() %>% 
   select(-fire_code, -fire_size_class)
@@ -101,7 +101,7 @@ ui <- dashboardPage(
                           "Choose a reporting source:",
                           choices = c(unique(mt$source_reporting_unit_name)))),
           box(background = "black",
-              plotOutput(outputId = "time_plot"))
+              plotOutput(outputId = "time_plot")) 
         )
       )
     )
@@ -137,7 +137,7 @@ server <- function(input, output){
       geom_sf(data = counties_mt)+
       geom_point(data = mt_df3(), aes (x = longitude, y = latitude),
                  color = "red",
-                 size = 5)+
+                 size = 5) +
       theme_minimal()
   })
   
@@ -176,10 +176,31 @@ server <- function(input, output){
   })
   
   output$time_plot <- renderPlot({
-    ggplot(data = mt_df4(), aes(x = fire_year, y = mean_interval))+
-      geom_line(color = "darkgreen")
+    ggplot(data = mt_df4(), aes(x = fire_year, y = mean_interval)) +
+      geom_line(color = "red",
+                size = 1) + 
+      geom_point(size = 2) + 
+      geom_ribbon(aes(ymin = 0, 
+                      ymax = mean_interval), 
+                      fill = "red", 
+                      alpha = 0.1) +
+      scale_x_continuous(breaks = seq(1992, 2015, by = 2),
+                         expand = c(0, 0)) + 
+      labs(title = "Montana Fire Containment Times",
+           subtitle = "By Land Management Reporting Agency (1992-2015)",
+           caption = "Time series of how Montana wildfire containment times (in hours) have fluctuated annually between 1992-2015 within different land manangement units.",
+           x = "Year",
+           y = "Containment Time (hours)") +
+      theme_bw() +
+      theme(axis.text.x = element_text(size = 12),
+             axis.title.y = element_text(size = 12),
+             plot.title = element_text(size = 16),
+             plot.subtitle = element_text(size = 14))
+      
   })
-}
+
+  }
+
 
 
 # --------------------------------
