@@ -15,7 +15,6 @@ library(devtools)
 library(leaflet)
 library(kableExtra)
 library(lubridate)
-library(ggthemes)
 
 # ----------------------------
 # read in data
